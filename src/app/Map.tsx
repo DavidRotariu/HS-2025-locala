@@ -13,6 +13,19 @@ export default function Map() {
   const [routeCalculated, setRouteCalculated] = useState(false);
   const [markers, setMarkers] = useState<L.Marker[]>([]); // Track all markers
 
+  const droneIcon = L.icon({
+    iconUrl: "/drone.png",
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -40],
+  });
+  const blueMarker = L.icon({
+    iconUrl: "/bluemarker.png",
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -40],
+  });
+
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -24,6 +37,10 @@ export default function Map() {
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution:
         '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(initMap);
+
+    L.marker([47.64115437373143, 26.244929831845194], {
+      icon: droneIcon,
     }).addTo(initMap);
 
     setMap(initMap);
@@ -39,7 +56,9 @@ export default function Map() {
     const newLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
     setLocations((prev) => [...prev, newLocation]);
 
-    const marker = L.marker(e.latlng).addTo(map);
+    const marker = L.marker(e.latlng, {
+      icon: blueMarker,
+    }).addTo(map);
     setMarkers((prev) => [...prev, marker]); // Store markers in state
   };
 
