@@ -10,6 +10,8 @@ export default function Map() {
     []
   );
   const [routeLayer, setRouteLayer] = useState<L.Polyline | null>(null);
+  const [routeCalculated, setRouteCalculated] = useState(false);
+  const [markers, setMarkers] = useState<L.Marker[]>([]); // Track all markers
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -36,7 +38,9 @@ export default function Map() {
 
     const newLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
     setLocations((prev) => [...prev, newLocation]);
-    L.marker(e.latlng).addTo(map);
+
+    const marker = L.marker(e.latlng).addTo(map);
+    setMarkers((prev) => [...prev, marker]); // Store markers in state
   };
 
   useEffect(() => {
@@ -67,6 +71,7 @@ export default function Map() {
       console.log("Optimized Order:", sortedLocations);
 
       drawRoute(sortedLocations);
+      setRouteCalculated(true);
     } catch (error) {
       console.error("Error fetching optimal route:", error);
     }
@@ -75,44 +80,73 @@ export default function Map() {
   const drawRoute = (sortedLocations: { lat: number; lng: number }[]) => {
     if (!map) return;
 
-    // Remove existing route if any
     if (routeLayer) {
       map.removeLayer(routeLayer);
     }
 
-    // Convert sorted locations into LatLng array
     const latLngs: L.LatLngTuple[] = sortedLocations.map(
       (loc) => [loc.lat, loc.lng] as L.LatLngTuple
     );
 
-    // Create and add polyline to the map
     const newRouteLayer = L.polyline(latLngs, {
       color: "red",
       weight: 4,
       opacity: 0.8,
     }).addTo(map);
 
-    // Update state with new route layer
     setRouteLayer(newRouteLayer);
-
-    // Fit map to show the whole route
     map.fitBounds(newRouteLayer.getBounds());
+  };
+
+  const resetMap = () => {
+    if (!map) return;
+
+    // Remove all markers
+    markers.forEach((marker) => map.removeLayer(marker));
+    setMarkers([]); // Clear markers array
+
+    // Remove route layer if present
+    if (routeLayer) {
+      map.removeLayer(routeLayer);
+      setRouteLayer(null);
+    }
+
+    // Clear all locations and reset state
+    setLocations([]);
+    setRouteCalculated(false);
+
+    // Reset map view
+    map.setView([47.64115437373143, 26.244929831845194], 14);
   };
 
   return (
     <div className="w-screen h-screen flex items-center justify-center bg-white">
+      <h1 className="absolute top-10 left-1/2 transform -translate-x-1/2 text-3xl font-bold text-gray-800">
+        {`Route Planner for drone/rover (we can't decide)`}
+      </h1>
       <div className="h-[70vh] w-[70vh] bg-gray-200 border-2 border-gray-700 flex items-center justify-center">
         <div ref={mapRef} id="map" className="h-full w-full"></div>
       </div>
-      <button
-        onClick={computeOptimalRoute}
-        className="absolute bottom-25 right-10 bg-blue-500 text-white px-4 py-2 rounded-md shadow-md"
-      >
-        Calculate Route
-      </button>
+
+      {routeCalculated ? (
+        <button
+          onClick={resetMap}
+          className="absolute bottom-25 right-10 bg-red-500 text-white px-4 py-2 rounded-md shadow-md"
+        >
+          Reset Route
+        </button>
+      ) : (
+        <button
+          onClick={computeOptimalRoute}
+          className="absolute bottom-25 right-10 bg-blue-500 text-white px-4 py-2 rounded-md shadow-md"
+        >
+          Calculate Route
+        </button>
+      )}
+
       <button
         onClick={() => console.log("Sending locations:", locations)}
-        className="absolute bottom-10 right-10 bg-blue-500 text-white px-4 py-2 rounded-md shadow-md"
+        className="absolute bottom-10 right-10 bg-green-500 text-white px-4 py-2 rounded-md shadow-md"
       >
         Send Locations
       </button>
