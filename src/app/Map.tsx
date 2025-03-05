@@ -2,6 +2,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
+import Sidebar from "./Sidebar";
+import { Button } from "@/components/ui/button";
 
 export default function Map() {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -54,12 +56,26 @@ export default function Map() {
     if (!map) return;
 
     const newLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
-    setLocations((prev) => [...prev, newLocation]);
 
+    // Create marker
     const marker = L.marker(e.latlng, {
       icon: blueMarker,
     }).addTo(map);
-    setMarkers((prev) => [...prev, marker]); // Store markers in state
+
+    // Add click event to remove marker
+    marker.on("click", () => {
+      map.removeLayer(marker);
+      setMarkers((prev) => prev.filter((m) => m !== marker));
+      setLocations((prev) =>
+        prev.filter(
+          (loc) => loc.lat !== newLocation.lat || loc.lng !== newLocation.lng
+        )
+      );
+    });
+
+    // Update state
+    setMarkers((prev) => [...prev, marker]);
+    setLocations((prev) => [...prev, newLocation]);
   };
 
   useEffect(() => {
@@ -139,36 +155,45 @@ export default function Map() {
   };
 
   return (
-    <div className="w-screen h-screen flex items-center justify-center bg-white">
-      <h1 className="absolute top-10 left-1/2 transform -translate-x-1/2 text-3xl font-bold text-gray-800">
-        {`Route Planner for drone/rover (we can't decide)`}
-      </h1>
-      <div className="h-[70vh] w-[70vh] bg-gray-200 border-2 border-gray-700 flex items-center justify-center">
-        <div ref={mapRef} id="map" className="h-full w-full"></div>
+    <div className="w-screen h-screen flex bg-white">
+      {/* Sidebar */}
+      <Sidebar />
+
+      {/* Main Content (Map & Buttons) */}
+      <div className="flex-1 flex flex-col items-center justify-center relative">
+        <h1 className="absolute top-10 text-center text-4xl font-bold text-gray-800">
+          {`Route Planner for Drone Delivery System`}
+        </h1>
+
+        {/* Map Container */}
+        <div className="h-[70vh] w-[70vh] flex items-center justify-center border-gray-700">
+          <div ref={mapRef} id="map" className="h-full w-full"></div>
+        </div>
+
+        {/* Buttons */}
+        {routeCalculated ? (
+          <Button
+            onClick={resetMap}
+            className="absolute bottom-25 right-10 bg-red-500 text-white shadow-md"
+          >
+            Reset Route
+          </Button>
+        ) : (
+          <Button
+            onClick={computeOptimalRoute}
+            className="absolute bottom-25 right-10 bg-blue-500 text-white shadow-md"
+          >
+            Calculate Route
+          </Button>
+        )}
+
+        <Button
+          onClick={() => console.log("Sending locations:", locations)}
+          className="absolute bottom-10 right-10 bg-green-500 text-white shadow-md"
+        >
+          Send Locations
+        </Button>
       </div>
-
-      {routeCalculated ? (
-        <button
-          onClick={resetMap}
-          className="absolute bottom-25 right-10 bg-red-500 text-white px-4 py-2 rounded-md shadow-md"
-        >
-          Reset Route
-        </button>
-      ) : (
-        <button
-          onClick={computeOptimalRoute}
-          className="absolute bottom-25 right-10 bg-blue-500 text-white px-4 py-2 rounded-md shadow-md"
-        >
-          Calculate Route
-        </button>
-      )}
-
-      <button
-        onClick={() => console.log("Sending locations:", locations)}
-        className="absolute bottom-10 right-10 bg-green-500 text-white px-4 py-2 rounded-md shadow-md"
-      >
-        Send Locations
-      </button>
     </div>
   );
 }
