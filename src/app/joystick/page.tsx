@@ -75,12 +75,15 @@ export default function JoystickComp() {
   };
 
   return (
-    <div className="bg-gray-300 min-h-screen flex justify-center items-center p-4">
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-10 sm:gap-20 w-full">
+    <div className="bg-gray-300 min-h-screen flex flex-col justify-center items-center p-4">
+      <h1 className="absolute top-20 text-center text-7xl font-bold text-gray-800">
+        {`Drone Joystick Controller`}
+      </h1>
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-20 sm:gap-20 w-full mt-[5rem]">
         {/* Left Joystick (Throttle & Yaw) */}
-        <div className="max-w-xs w-full flex justify-center">
+        <div className="max-w-xs w-full flex justify-center mx-[3rem]">
           <Joystick
-            size={150}
+            size={250}
             start={() => console.log("Left Joystick Started")}
             move={handleLeftJoystick}
             stop={() => sendCommand("HOVER", 0, 0)}
@@ -88,9 +91,9 @@ export default function JoystickComp() {
         </div>
 
         {/* Right Joystick (Pitch & Roll) */}
-        <div className="max-w-xs w-full flex justify-center">
+        <div className="max-w-xs w-full flex justify-center mx-[3rem]">
           <Joystick
-            size={150}
+            size={250}
             start={() => console.log("Right Joystick Started")}
             move={handleRightJoystick}
             stop={() => sendCommand("HOVER", 0, 0)}
