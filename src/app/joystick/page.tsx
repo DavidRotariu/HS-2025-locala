@@ -3,6 +3,7 @@
 
 import { Joystick } from "react-joystick-component";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 interface JoystickEvent {
   type: "move" | "stop" | "start";
@@ -14,7 +15,9 @@ interface JoystickEvent {
 
 export default function JoystickComp() {
   const [ws, setWs] = useState<WebSocket | null>(null);
-  const maxSpeed = 100; // Maximum speed for the drone (adjustable)
+  const [leftImage, setLeftImage] = useState<string | null>("leftdrone");
+  const [rightImage, setRightImage] = useState<string | null>("rightdrone");
+  const maxSpeed = 100;
 
   useEffect(() => {
     const websocket = new WebSocket("ws://192.168.0.117:8000/ws/123");
@@ -25,10 +28,9 @@ export default function JoystickComp() {
 
     setWs(websocket);
 
-    return () => websocket.close(); // Close WebSocket when unmounted
+    return () => websocket.close();
   }, []);
 
-  // Function to calculate speed based on joystick position
   const calculateSpeed = (x: number, y: number): number => {
     const magnitude = Math.sqrt(x * x + y * y); // Normalize joystick input
     return Math.round(magnitude * maxSpeed); // Scale speed to maxSpeed
@@ -56,6 +58,13 @@ export default function JoystickComp() {
     };
 
     const command = leftJoystickMap[event.direction] || "HOVER";
+    if (command == "TAKEOFF" || command == "LAND") {
+      setRightImage("rightdrone");
+      setLeftImage(command);
+    } else {
+      setLeftImage("leftdrone");
+      setRightImage(command);
+    }
     sendCommand(command, event.x ?? 0, event.y ?? 0);
   };
 
@@ -71,34 +80,61 @@ export default function JoystickComp() {
     };
 
     const command = rightJoystickMap[event.direction] || "HOVER";
+    setRightImage(command);
     sendCommand(command, event.x ?? 0, event.y ?? 0);
   };
 
   return (
-    <div className="bg-gray-300 min-h-screen flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen flex flex-col justify-center items-center p-4">
       <h1 className="absolute top-20 text-center text-7xl font-bold text-gray-800">
         {`Drone Joystick Controller`}
       </h1>
       <div className="flex flex-col sm:flex-row items-center justify-center gap-20 sm:gap-20 w-full mt-[5rem]">
         {/* Left Joystick (Throttle & Yaw) */}
-        <div className="max-w-xs w-full flex justify-center mx-[3rem]">
+        <div className="z-1 max-w-xs w-full flex justify-center mx-[3rem]">
           <Joystick
             size={250}
             start={() => console.log("Left Joystick Started")}
             move={handleLeftJoystick}
-            stop={() => sendCommand("HOVER", 0, 0)}
+            stop={() => {
+              sendCommand("HOVER", 0, 0);
+              setLeftImage("leftdrone");
+              setRightImage("rightdrone");
+            }}
           />
         </div>
 
         {/* Right Joystick (Pitch & Roll) */}
-        <div className="max-w-xs w-full flex justify-center mx-[3rem]">
+        <div className="z-1 max-w-xs w-full flex justify-center mx-[3rem]">
           <Joystick
             size={250}
             start={() => console.log("Right Joystick Started")}
             move={handleRightJoystick}
-            stop={() => sendCommand("HOVER", 0, 0)}
+            stop={() => {
+              sendCommand("HOVER", 0, 0);
+              setRightImage("rightdrone");
+            }}
           />
         </div>
+      </div>
+      <div className="z-0 absolute bottom-4 left-4">
+        <Image
+          src={`/${leftImage}.png`}
+          alt="Left Icon"
+          width={376}
+          height={311}
+          priority
+        />
+      </div>
+
+      <div className="z-0 absolute bottom-4 right-4">
+        <Image
+          src={`/${rightImage}.png`}
+          alt="Right Icon"
+          width={376}
+          height={311}
+          priority
+        />
       </div>
     </div>
   );
