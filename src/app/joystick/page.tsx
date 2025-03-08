@@ -19,10 +19,7 @@ export default function JoystickComp() {
   const handleYMove = (event: JoystickEvent) => {
     const x = event.x ?? 0;
     const y = event.y ?? 0;
-    let direction = event.direction ?? "CENTER";
-
-    if (direction === "RIGHT") direction = "FORWARD";
-    if (direction === "LEFT") direction = "BACKWARD";
+    const direction = event.direction ?? "CENTER";
 
     setPosition1({ x, y });
     console.log(`Direction1: ${direction}, X: ${x}, Y: ${y}`);
@@ -45,7 +42,7 @@ export default function JoystickComp() {
             size={150}
             // smSize={200}
             // mdSize={250}
-            controlPlaneShape={JoystickShape.AxisX}
+            // controlPlaneShape={JoystickShape.AxisX}
             start={() => console.log("Joystick Started")}
             move={handleYMove}
             stop={() => console.log("Joystick Stopped")}
@@ -62,12 +59,6 @@ export default function JoystickComp() {
             stop={() => console.log("Joystick Stopped")}
           />
         </div>
-
-        {/*
-                    <div className="text-white text-lg">
-                        X: {position.x}, Y: {position.y}
-                    </div>
-                */}
       </div>
     </div>
   );
