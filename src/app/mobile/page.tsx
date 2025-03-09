@@ -23,7 +23,7 @@ export default function JoystickComp() {
   
     const connectWebSocket = () => {
       if (!ws || ws.readyState !== WebSocket.OPEN) {
-        const websocket = new WebSocket("ws://192.168.0.105:8000/ws/2");
+        const websocket = new WebSocket("ws://192.168.0.105:8000/ws/1");
   
         websocket.onopen = () => {
           console.log("Connected to WebSocket");
@@ -49,8 +49,6 @@ export default function JoystickComp() {
         ws.close();
         setWs(null);
       }
-      setLeftImage("leftdrone");
-      setRightImage("rightdrone");
     };
   
     const mapJoystickToPWM = (joystickValue: number): number => {
@@ -92,13 +90,14 @@ export default function JoystickComp() {
           : event.x;
   
       const command = leftJoystickMap[event.direction] || "HOVER";
-      if (command == "TAKEOFF" || command == "LAND") {
-        setRightImage("rightdrone");
-        setLeftImage(command);
-      } else {
-        setLeftImage("leftdrone");
-        setRightImage(command);
-      }
+  
+      setLeftImage("leftdrone");
+      setRightImage("rightdrone");
+      if (event.direction == "FORWARD") setLeftImage("TAKEOFF");
+      else if (event.direction == "BACKWARD") setLeftImage("LAND");
+      else if (event.direction == "LEFT") setRightImage("TURN_LEFT");
+      else if (event.direction == "RIGHT") setRightImage("TURN_RIGHT");
+  
       sendCommandThrottled(command, value);
     };
   
@@ -119,9 +118,17 @@ export default function JoystickComp() {
           : event.x;
   
       const command = rightJoystickMap[event.direction] || "HOVER";
-      setRightImage(command);
+  
+      setLeftImage("leftdrone");
+      setRightImage("rightdrone");
+      if (event.direction == "FORWARD") setRightImage("MOVE_FWD");
+      else if (event.direction == "BACKWARD") setRightImage("MOVE_BWD");
+      else if (event.direction == "LEFT") setRightImage("MOVE_LEFT");
+      else if (event.direction == "RIGHT") setRightImage("MOVE_RIGHT");
+  
       sendCommandThrottled(command, value);
     };
+  
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-4">
       <h1 className="absolute top-20 text-center text-4xl font-bold text-gray-800">
