@@ -2,8 +2,9 @@
 "use client";
 
 import { Joystick } from "react-joystick-component";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
 
 interface JoystickEvent {
   type: "move" | "stop" | "start";
@@ -17,36 +18,37 @@ export default function JoystickComp() {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [leftImage, setLeftImage] = useState<string | null>("leftdrone");
   const [rightImage, setRightImage] = useState<string | null>("rightdrone");
-  const maxSpeed = 100;
+  const lastSentTime = useRef(0);
+  const sendInterval = 100;
 
-  useEffect(() => {
-    const websocket = new WebSocket("ws://192.168.0.105:8000/ws/1");
+  const connectWebSocket = () => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      const websocket = new WebSocket("ws://192.168.0.105:8000/ws/1");
 
-    websocket.onopen = () => console.log("Connected to WebSocket");
-    websocket.onclose = () => console.log("WebSocket Disconnected");
-    websocket.onerror = (error) => console.error("WebSocket Error:", error);
+      websocket.onopen = () => {
+        console.log("Connected to WebSocket");
+        websocket.send(JSON.stringify({ command: "ARM", value: 1500 }));
+      };
 
-    setWs(websocket);
+      websocket.onclose = () => {
+        console.log("WebSocket Disconnected");
+      };
+      websocket.onerror = (error) => console.error("WebSocket Error:", error);
 
-    return () => websocket.close();
-  }, []);
-
-  const startCommand = () => {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ command: "ARM", value: 1200 }));
-      console.log(`Sent: ARM, Speed: 1500`);
-    } else {
-      console.error("WebSocket not connected.");
+      setWs(websocket);
     }
   };
 
+  const startCommand = () => {
+    connectWebSocket();
+  };
+
   const stopCommand = () => {
-    // if (ws && ws.readyState === WebSocket.OPEN) {
-    //   ws.send(JSON.stringify({ command: "DISARM", value: 700 }));
-    //   console.log(`Sent: DISARM, Speed: 1000`);
-    // } else {
-    //   console.error("WebSocket not connected.");
-    // }
+    if (ws) {
+      ws.send(JSON.stringify({ command: "ARM", value: 1000 }));
+      ws.close();
+      setWs(null);
+    }
     setLeftImage("leftdrone");
     setRightImage("rightdrone");
   };
@@ -56,12 +58,20 @@ export default function JoystickComp() {
   };
 
   const sendCommand = (command: string, value: number | null) => {
-    if (ws && ws.readyState === WebSocket.OPEN && value) {
+    if (ws && ws.readyState === WebSocket.OPEN && value != null) {
       const joystickValue = mapJoystickToPWM(value);
       ws.send(JSON.stringify({ command, value: joystickValue }));
       console.log(`Sent: ${command} -> ${joystickValue}`);
     } else {
       console.error("WebSocket not connected.");
+    }
+  };
+
+  const sendCommandThrottled = (command: string, value: number | null) => {
+    const now = Date.now();
+    if (now - lastSentTime.current > sendInterval) {
+      sendCommand(command, value);
+      lastSentTime.current = now;
     }
   };
 
@@ -89,7 +99,7 @@ export default function JoystickComp() {
       setLeftImage("leftdrone");
       setRightImage(command);
     }
-    sendCommand(command, value);
+    sendCommandThrottled(command, value);
   };
 
   const handleRightJoystick = (event: JoystickEvent) => {
@@ -110,11 +120,23 @@ export default function JoystickComp() {
 
     const command = rightJoystickMap[event.direction] || "HOVER";
     setRightImage(command);
-    sendCommand(command, value);
+    sendCommandThrottled(command, value);
   };
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-4">
+      <Button
+        className="absolute top-4 left-4 bg-green-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg"
+        onClick={startCommand}
+      >
+        ARM
+      </Button>
+      <Button
+        className="absolute top-4 right-4 bg-red-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg"
+        onClick={stopCommand}
+      >
+        DISARM
+      </Button>
       <h1 className="absolute top-20 text-center text-7xl font-bold text-gray-800">
         {`Drone Joystick Controller`}
       </h1>
@@ -123,9 +145,11 @@ export default function JoystickComp() {
         <div className="z-1 max-w-xs w-full flex justify-center mx-[3rem]">
           <Joystick
             size={250}
-            start={startCommand}
+            // start={startCommand}
             move={handleLeftJoystick}
-            stop={stopCommand}
+            stop={() => {
+              sendCommand("HOVER", 0);
+            }}
           />
         </div>
 
@@ -133,9 +157,11 @@ export default function JoystickComp() {
         <div className="z-1 max-w-xs w-full flex justify-center mx-[3rem]">
           <Joystick
             size={250}
-            start={startCommand}
+            // start={startCommand}
             move={handleRightJoystick}
-            stop={stopCommand}
+            stop={() => {
+              sendCommand("HOVER", 0);
+            }}
           />
         </div>
       </div>
