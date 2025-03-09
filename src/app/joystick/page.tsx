@@ -20,7 +20,7 @@ export default function JoystickComp() {
   const maxSpeed = 100;
 
   useEffect(() => {
-    const websocket = new WebSocket("ws://192.168.0.117:8000/ws/123");
+    const websocket = new WebSocket("ws://192.168.0.105:8000/ws/1");
 
     websocket.onopen = () => console.log("Connected to WebSocket");
     websocket.onclose = () => console.log("WebSocket Disconnected");
@@ -31,16 +31,35 @@ export default function JoystickComp() {
     return () => websocket.close();
   }, []);
 
-  const calculateSpeed = (x: number, y: number): number => {
-    const magnitude = Math.sqrt(x * x + y * y); // Normalize joystick input
-    return Math.round(magnitude * maxSpeed); // Scale speed to maxSpeed
+  const startCommand = () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ command: "ARM", value: 1200 }));
+      console.log(`Sent: ARM, Speed: 1500`);
+    } else {
+      console.error("WebSocket not connected.");
+    }
   };
 
-  const sendCommand = (command: string, x: number, y: number) => {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      const speed = calculateSpeed(x, y);
-      ws.send(JSON.stringify({ command, speed }));
-      console.log(`Sent: ${command}, Speed: ${speed}`);
+  const stopCommand = () => {
+    // if (ws && ws.readyState === WebSocket.OPEN) {
+    //   ws.send(JSON.stringify({ command: "DISARM", value: 700 }));
+    //   console.log(`Sent: DISARM, Speed: 1000`);
+    // } else {
+    //   console.error("WebSocket not connected.");
+    // }
+    setLeftImage("leftdrone");
+    setRightImage("rightdrone");
+  };
+
+  const mapJoystickToPWM = (joystickValue: number): number => {
+    return Math.round(1500 + joystickValue * 500); // Map -1 to 1 -> 1000 to 2000
+  };
+
+  const sendCommand = (command: string, value: number | null) => {
+    if (ws && ws.readyState === WebSocket.OPEN && value) {
+      const joystickValue = mapJoystickToPWM(value);
+      ws.send(JSON.stringify({ command, value: joystickValue }));
+      console.log(`Sent: ${command} -> ${joystickValue}`);
     } else {
       console.error("WebSocket not connected.");
     }
@@ -51,11 +70,16 @@ export default function JoystickComp() {
 
     // Mapping for LEFT joystick (Throttle & Yaw)
     const leftJoystickMap: Record<string, string> = {
-      FORWARD: "TAKEOFF", // Increase altitude
-      BACKWARD: "LAND", // Decrease altitude
-      LEFT: "TURN_LEFT", // Rotate left
-      RIGHT: "TURN_RIGHT", // Rotate right
+      FORWARD: "THROTTLE", // Increase altitude
+      BACKWARD: "THROTTLE", // Decrease altitude
+      LEFT: "YAW", // Rotate left
+      RIGHT: "YAW", // Rotate right
     };
+
+    const value =
+      event.direction == "FORWARD" || event.direction == "BACKWARD"
+        ? event.y
+        : event.x;
 
     const command = leftJoystickMap[event.direction] || "HOVER";
     if (command == "TAKEOFF" || command == "LAND") {
@@ -65,7 +89,7 @@ export default function JoystickComp() {
       setLeftImage("leftdrone");
       setRightImage(command);
     }
-    sendCommand(command, event.x ?? 0, event.y ?? 0);
+    sendCommand(command, value);
   };
 
   const handleRightJoystick = (event: JoystickEvent) => {
@@ -73,15 +97,20 @@ export default function JoystickComp() {
 
     // Mapping for RIGHT joystick (Pitch & Roll)
     const rightJoystickMap: Record<string, string> = {
-      FORWARD: "MOVE_FWD", // Move forward
-      BACKWARD: "MOVE_BWD", // Move backward
-      LEFT: "MOVE_LEFT", // Strafe left
-      RIGHT: "MOVE_RIGHT", // Strafe right
+      FORWARD: "PITCH", // Move forward
+      BACKWARD: "PITCH", // Move backward
+      LEFT: "ROLL", // Strafe left
+      RIGHT: "ROLL", // Strafe right
     };
+
+    const value =
+      event.direction == "FORWARD" || event.direction == "BACKWARD"
+        ? event.y
+        : event.x;
 
     const command = rightJoystickMap[event.direction] || "HOVER";
     setRightImage(command);
-    sendCommand(command, event.x ?? 0, event.y ?? 0);
+    sendCommand(command, value);
   };
 
   return (
@@ -94,13 +123,9 @@ export default function JoystickComp() {
         <div className="z-1 max-w-xs w-full flex justify-center mx-[3rem]">
           <Joystick
             size={250}
-            start={() => console.log("Left Joystick Started")}
+            start={startCommand}
             move={handleLeftJoystick}
-            stop={() => {
-              sendCommand("HOVER", 0, 0);
-              setLeftImage("leftdrone");
-              setRightImage("rightdrone");
-            }}
+            stop={stopCommand}
           />
         </div>
 
@@ -108,12 +133,9 @@ export default function JoystickComp() {
         <div className="z-1 max-w-xs w-full flex justify-center mx-[3rem]">
           <Joystick
             size={250}
-            start={() => console.log("Right Joystick Started")}
+            start={startCommand}
             move={handleRightJoystick}
-            stop={() => {
-              sendCommand("HOVER", 0, 0);
-              setRightImage("rightdrone");
-            }}
+            stop={stopCommand}
           />
         </div>
       </div>
