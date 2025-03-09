@@ -2,7 +2,7 @@
 "use client";
 
 import { Joystick } from "react-joystick-component";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 
@@ -18,6 +18,8 @@ export default function JoystickComp() {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [leftImage, setLeftImage] = useState<string | null>("leftdrone");
   const [rightImage, setRightImage] = useState<string | null>("rightdrone");
+  const lastSentTime = useRef(0);
+  const sendInterval = 100;
 
   const connectWebSocket = () => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -29,7 +31,6 @@ export default function JoystickComp() {
       };
 
       websocket.onclose = () => {
-        websocket.send(JSON.stringify({ command: "DISARM", value: 1000 }));
         console.log("WebSocket Disconnected");
       };
       websocket.onerror = (error) => console.error("WebSocket Error:", error);
@@ -44,6 +45,7 @@ export default function JoystickComp() {
 
   const stopCommand = () => {
     if (ws) {
+      ws.send(JSON.stringify({ command: "ARM", value: 1000 }));
       ws.close();
       setWs(null);
     }
@@ -56,12 +58,20 @@ export default function JoystickComp() {
   };
 
   const sendCommand = (command: string, value: number | null) => {
-    if (ws && ws.readyState === WebSocket.OPEN && value) {
+    if (ws && ws.readyState === WebSocket.OPEN && value != null) {
       const joystickValue = mapJoystickToPWM(value);
       ws.send(JSON.stringify({ command, value: joystickValue }));
       console.log(`Sent: ${command} -> ${joystickValue}`);
     } else {
       console.error("WebSocket not connected.");
+    }
+  };
+
+  const sendCommandThrottled = (command: string, value: number | null) => {
+    const now = Date.now();
+    if (now - lastSentTime.current > sendInterval) {
+      sendCommand(command, value);
+      lastSentTime.current = now;
     }
   };
 
@@ -89,7 +99,7 @@ export default function JoystickComp() {
       setLeftImage("leftdrone");
       setRightImage(command);
     }
-    sendCommand(command, value);
+    sendCommandThrottled(command, value);
   };
 
   const handleRightJoystick = (event: JoystickEvent) => {
@@ -110,7 +120,7 @@ export default function JoystickComp() {
 
     const command = rightJoystickMap[event.direction] || "HOVER";
     setRightImage(command);
-    sendCommand(command, value);
+    sendCommandThrottled(command, value);
   };
 
   return (
@@ -137,7 +147,9 @@ export default function JoystickComp() {
             size={250}
             // start={startCommand}
             move={handleLeftJoystick}
-            // stop={stopCommand}
+            stop={() => {
+              sendCommand("HOVER", 0);
+            }}
           />
         </div>
 
@@ -147,7 +159,9 @@ export default function JoystickComp() {
             size={250}
             // start={startCommand}
             move={handleRightJoystick}
-            // stop={stopCommand}
+            stop={() => {
+              sendCommand("HOVER", 0);
+            }}
           />
         </div>
       </div>
