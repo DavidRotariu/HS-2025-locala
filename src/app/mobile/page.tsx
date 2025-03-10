@@ -23,7 +23,7 @@ export default function JoystickComp() {
   
     const connectWebSocket = () => {
       if (!ws || ws.readyState !== WebSocket.OPEN) {
-        const websocket = new WebSocket("ws://192.168.0.105:8000/ws/1");
+        const websocket = new WebSocket("ws://192.168.0.105:8000/ws/2");
   
         websocket.onopen = () => {
           console.log("Connected to WebSocket");
@@ -39,11 +39,11 @@ export default function JoystickComp() {
       }
     };
   
-    const startCommand = () => {
+    const armButton = () => {
       connectWebSocket();
     };
   
-    const stopCommand = () => {
+    const disarmButton = () => {
       if (ws) {
         ws.send(JSON.stringify({ command: "ARM", value: 1000 }));
         ws.close();
@@ -137,23 +137,35 @@ export default function JoystickComp() {
       <div className="flex flex-col sm:flex-row items-center justify-center gap-20 md:gap-20 w-full mt-[5rem]">     
         {/* Left Joystick (Throttle & Yaw) */}
         <div className="z-1 max-w-xs w-full flex justify-center mx-[3rem]">
-        <Button
-        className="absolute top-4 left-4 bg-green-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg"
-        onClick={startCommand}
-      >
-        ARM
-      </Button>
-      <Button
-        className="absolute top-4 right-4 bg-red-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg"
-        onClick={stopCommand}
-      >
-        DISARM
-      </Button>
+        <div
+                className="absolute top-4 left-4 flex items-center justify-center cursor-pointer transition-all active:scale-90 hover:brightness-110"
+                onClick={armButton}
+              >
+                <Image
+                  src="/arm.png"
+                  alt="arm button"
+                  width={150}
+                  height={150}
+                  className="drop-shadow-lg rounded-lg"
+                />
+              </div>
+        
+              <div
+                className="absolute top-4 right-4 flex items-center justify-center cursor-pointer transition-all active:scale-90 hover:brightness-110"
+                onClick={disarmButton}
+              >
+                <Image
+                  src="/disarm.png"
+                  alt="disarm button"
+                  width={150}
+                  height={150}
+                  className="drop-shadow-lg rounded-lg"
+                />
+              </div>
+        
           <Joystick
             size={200}
-            start={startCommand}
             move={handleLeftJoystick}
-            stop={stopCommand}
           />
         </div>
 
@@ -161,9 +173,7 @@ export default function JoystickComp() {
         <div className="z-1 max-w-xs w-full flex justify-center mx-[3rem]">
           <Joystick
             size={200}
-            start={startCommand}
             move={handleRightJoystick}
-            stop={stopCommand}
           />
         </div>
       </div>
