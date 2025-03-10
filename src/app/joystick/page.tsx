@@ -23,7 +23,7 @@ export default function JoystickComp() {
 
   const connectWebSocket = () => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      const websocket = new WebSocket("ws://192.168.0.105:8000/ws/1");
+      const websocket = new WebSocket("ws://192.168.194.121:8000/ws/1");
 
       websocket.onopen = () => {
         console.log("Connected to WebSocket");
@@ -39,11 +39,11 @@ export default function JoystickComp() {
     }
   };
 
-  const startCommand = () => {
+  const armButton = () => {
     connectWebSocket();
   };
 
-  const stopCommand = () => {
+  const disarmButton = () => {
     if (ws) {
       ws.send(JSON.stringify({ command: "ARM", value: 1000 }));
       ws.close();
@@ -73,15 +73,15 @@ export default function JoystickComp() {
     }
   };
 
+  // Mapping for LEFT joystick (Throttle & Yaw)
   const handleLeftJoystick = (event: JoystickEvent) => {
     if (!event.direction) return;
 
-    // Mapping for LEFT joystick (Throttle & Yaw)
     const leftJoystickMap: Record<string, string> = {
-      FORWARD: "THROTTLE", // Increase altitude
-      BACKWARD: "THROTTLE", // Decrease altitude
-      LEFT: "YAW", // Rotate left
-      RIGHT: "YAW", // Rotate right
+      FORWARD: "THROTTLE",
+      BACKWARD: "THROTTLE",
+      LEFT: "YAW",
+      RIGHT: "YAW",
     };
 
     const value =
@@ -101,15 +101,15 @@ export default function JoystickComp() {
     sendCommandThrottled(command, value);
   };
 
+  // Mapping for RIGHT joystick (Pitch & Roll)
   const handleRightJoystick = (event: JoystickEvent) => {
     if (!event.direction) return;
 
-    // Mapping for RIGHT joystick (Pitch & Roll)
     const rightJoystickMap: Record<string, string> = {
-      FORWARD: "PITCH", // Move forward
-      BACKWARD: "PITCH", // Move backward
-      LEFT: "ROLL", // Strafe left
-      RIGHT: "ROLL", // Strafe right
+      FORWARD: "PITCH",
+      BACKWARD: "PITCH",
+      LEFT: "ROLL",
+      RIGHT: "ROLL",
     };
 
     const value =
@@ -131,27 +131,42 @@ export default function JoystickComp() {
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-4">
-      <Button
-        className="absolute top-4 left-4 bg-green-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg"
-        onClick={startCommand}
+      <div
+        className="absolute top-4 left-4 flex items-center justify-center cursor-pointer transition-all active:scale-90 hover:brightness-110"
+        onClick={armButton}
       >
-        ARM
-      </Button>
-      <Button
-        className="absolute top-4 right-4 bg-red-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg"
-        onClick={stopCommand}
+        <Image
+          src="/arm.png"
+          alt="arm button"
+          width={200}
+          height={200}
+          className="drop-shadow-lg rounded-lg"
+        />
+      </div>
+
+      <div
+        className="absolute top-4 right-4 flex items-center justify-center cursor-pointer transition-all active:scale-90 hover:brightness-110"
+        onClick={disarmButton}
       >
-        DISARM
-      </Button>
-      <h1 className="absolute top-20 text-center text-7xl font-bold text-gray-800">
-        {`Drone Joystick Controller`}
+        <Image
+          src="/disarm.png"
+          alt="disarm button"
+          width={200}
+          height={200}
+          className="drop-shadow-lg rounded-lg"
+        />
+      </div>
+
+      <h1 className="absolute top-30 text-center text-7xl font-bold text-gray-800">
+        {`Drone Controller`}
       </h1>
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-20 sm:gap-20 w-full mt-[5rem]">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-20 sm:gap-20 w-full mt-[3rem]">
         {/* Left Joystick (Throttle & Yaw) */}
         <div className="z-1 max-w-xs w-full flex justify-center mx-[3rem]">
           <Joystick
             size={250}
-            // start={startCommand}
+            baseColor={"#323232"}
+            stickColor={"#A0A0A0"}
             move={handleLeftJoystick}
             stop={() => {
               setLeftImage("leftdrone");
@@ -160,12 +175,12 @@ export default function JoystickComp() {
             }}
           />
         </div>
-
         {/* Right Joystick (Pitch & Roll) */}
         <div className="z-1 max-w-xs w-full flex justify-center mx-[3rem]">
           <Joystick
             size={250}
-            // start={startCommand}
+            baseColor={"#323232"}
+            stickColor={"#A0A0A0"}
             move={handleRightJoystick}
             stop={() => {
               setLeftImage("leftdrone");
